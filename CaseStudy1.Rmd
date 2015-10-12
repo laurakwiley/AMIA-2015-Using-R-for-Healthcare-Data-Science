@@ -269,7 +269,7 @@ iwpc_data %>%
 
 ## Data Manipulation: Medications {.smaller}
 
-```{r medications}
+```{r medications, echo=TRUE}
 iwpc_data %<>% mutate(medications = tolower(medications))
 iwpc_data %>% filter(str_detect(medications, "amiodarone")) %>% count(medications) %>% datatable()
 ```
@@ -278,7 +278,7 @@ iwpc_data %>% filter(str_detect(medications, "amiodarone")) %>% count(medication
 
 ## Data Manipulation: Amiodarone
 
-```{r amiodarone}
+```{r amiodarone, echo=TRUE}
 iwpc_data %>% filter(str_detect(medications, "amiodarone")) %>% count(medications)
 iwpc_data %>% filter(str_detect(medications, "amiodarone")) %>% count()
 
@@ -293,7 +293,7 @@ iwpc_data %<>% mutate(amiodarone = ifelse(is.na(medications)|!str_detect(medicat
 
 ## Data Manipulation: Enzyme Enducers
 
-```{r enzyme_inducers}
+```{r enzyme_inducers, echo=TRUE}
 #### Carbamazepine
 iwpc_data %>% filter(str_detect(medications,"carbamazepine")) %>% count()
 iwpc_data %>% filter(str_detect(medications,"(^|;)[a-z ]*carbamazepine")) %>% count()
@@ -327,7 +327,7 @@ iwpc_data %<>% mutate(enzyme_enducer = ifelse((carbamazepine+phenytoin+rifampin+
 
 ## Data Manipulation: Age
 
-```{r age}
+```{r age, echo=TRUE}
 iwpc_data %>% count(age)
 iwpc_data %>% count(age, substr(age,1,1), as.numeric(substr(age,1,1)))
 iwpc_data %>% mutate(age_decades = as.numeric(substr(age,1,1)))
@@ -336,7 +336,7 @@ iwpc_data %>% mutate(age_decades = as.numeric(substr(age,1,1)))
 
 ## Data Visualization: Warfarin Dose
 
-```{r warfarin_1}
+```{r warfarin_1, echo=TRUE}
 iwpc_data %>% count(therapeutic_warfarin_dose)
 iwpc_data %>% ggplot(aes(x=1,y = therapeutic_warfarin_dose)) + geom_boxplot()
 iwpc_data %>% ggplot(aes(x=1,y = sqrt(therapeutic_warfarin_dose))) + geom_boxplot()
@@ -345,7 +345,7 @@ iwpc_data %>% ggplot(aes(x=1,y = sqrt(therapeutic_warfarin_dose))) + geom_boxplo
 
 
 ## Data Manipulation: Warfarin Dose
-```{r warfarin_dose_2}
+```{r warfarin_dose_2, echo=TRUE}
 iwpc_data %>% count(reached_stable_dose)
 iwpc_data %<>% filter(reached_stable_dose!=0)
 
