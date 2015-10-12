@@ -87,7 +87,7 @@ Let's load up our IWPC data!  We will be using a slightly modified form of the [
 This last reason is the deal breaker for readr. Readr interpolates the variable type (column, date, number, etc.) based on the first 100 rows or via manual specification.  Given the large number of columns (78) this becomes annoying at best. However, since we can't take advantage of readr automatically making a tbl_df() object, so we will have to do so manually.
 
 ```{r read_data}
-iwpc_data <- read.delim(file = "iwpc_data_7_3_09_revised.txt") %>% tbl_df()
+iwpc_data <- read.delim(file = "iwpc_data_7_3_09_revised3.txt") %>% tbl_df()
 ```
 
 Let's take a look at the type of data we are working with.
@@ -135,25 +135,3 @@ Looking at our data above we see there are a number of problems:
 
 ### Deploying Online Tools
 
-
-
-
-
-
-Using the [main data set](https://www.pharmgkb.org/download.do?objId=553247439&objCls=SubmissionEvent&ext=.xls) we created our own version of a warfarin dosing algorithm.
-
-### Sex Distribution
-
-The first thing we wanted to look at was the sex distribution of the population.
-```{r load data, results = 'asis', echo = FALSE}
-data <- read.delim(file = "iwpc_data_7_3_09_revised.txt")
-data %>%
-  tbl_df() %>% 
-  rename(subject_id = PharmGKB.Subject.ID,
-         sample_id = PharmGKB.Sample.ID,
-         project_site = Project.Site,
-         gender = Gender) %>% 
-  group_by(project_site) %>% 
-  count(gender) %>% 
-  kable(format = "html", table.attr = 'class="pure-table pure-table-bordered"', col.names = c("Sex","Count"))
-```
