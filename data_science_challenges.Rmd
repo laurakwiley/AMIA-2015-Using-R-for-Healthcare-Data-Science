@@ -1,0 +1,67 @@
+---
+title: "Data Science Challenges"
+author: "Laura Wiley"
+date: "October 12, 2015"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+libraries <- c("readr", "knitr", "DT", "purrr", "lubridate", "stringr", "tidyr", "ggplot2", "broom", "tidyr","magrittr")
+libs_to_install <- libraries[!(libraries %in% installed.packages()[,"Package"])]
+if(length(libs_to_install)>0){install.packages(libs_to_install)}
+
+library(magrittr)
+library(knitr)
+library(readr)
+library(DT)
+library(purrr)
+library(lubridate)
+library(stringr)
+library(broom)
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+```
+
+## Using R for Reporting <img src="images/r-markdown-hexbin.png" style="float: right; margin: 0px 0px 15px 15px;" height="200"/>
+
+**Motivation** 
+
+1. Easy mechanism for literate programming
+2. Sharing and updating analyses trivial
+    - With programmers/analysts/your future self
+    - With information consumers (e.g., your boss)
+
+<div class="columns-2">
+  <img src="images/markdown_withcode.png" alt="Drawing" style="width: 375px;"/>
+  <img src="images/markdown_nocode.png" alt="Drawing" style="width: 350px;"/>
+</div>
+
+## RMarkdown <img src="images/r-markdown-hexbin.png" style="float: right; margin: 0px 0px 15px 15px;" height="100"/>
+
+
+
+
+## Getting Data in to R <img src="images/readr.png" style="float: right; margin: 0px 0px 15px 15px;" height="100"/> {.smaller .build} 
+
+```{r dataio_summary, results='asis',echo=FALSE}
+data.frame(Library = c("Base R", 
+                       "readr/<br>readxl/<br>haven",
+                       "RODBC/<br>RJDBC"),
+           Example_Functions = c("read.table(), read.csv()", 
+                                 "read_delim(), read_csv(), read_excel(), read_sas()", 
+                                 "sqlQuery()"),
+           Pros = c("1. Built in<br>2. Can be helpful if field names are non-standard", 
+                    "1. Extremely fast<br> 2. Shows progress bar<br>3. Automatically creates tbl_df() object", 
+                    "1. Easy to access databases with ODBC/JDBC Drivers"),
+           Cons = c("1. StringsAsFactors = True<br>2. Slow on large data", 
+                    "1. Doesn't handle non-standard field names well<br>2. Data type interpolation not great for non-standard data sets", 
+                    "1. Can be slow depending on network connection")) %>% 
+  datatable(colnames = c("Library", "Example Functions", "Pros", "Cons"), rownames = FALSE, escape = FALSE) #%>% formatStyle(`font-size` = '12px')
+```
+
+<div class="warning">
+  <div class = "red2">**Warning:**</div>Each package has slightly different undesirable "features" so always check your data frame to make sure you're using the best option for your data set!
+<div/>
+
