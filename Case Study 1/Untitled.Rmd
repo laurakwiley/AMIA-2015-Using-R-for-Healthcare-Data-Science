@@ -1,0 +1,31 @@
+---
+title: "Data Science Choices"
+author: "Laura WIley"
+date: "October 10, 2015"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DT)
+library(dplyr)
+
+```
+
+#### Notes on libraries for data I/O
+
+```{r dataio_summary, results='asis',echo=FALSE}
+data.frame(Library = c("Base R", 
+                       "readr/<br>readxl/<br>haven",
+                       "RODBC/<br>RJDBC"),
+           Example_Functions = c("read.table(), read.csv()", 
+                                 "read_delim(), read_csv(), read_excel(), read_sas()", 
+                                 "sqlQuery()"),
+           Pros = c("1. Built in<br>2. Can be helpful if field names are non-standard", 
+                    "1. Extremely fast<br> 2. Shows progress bar<br>3. Automatically creates tbl_df() object", 
+                    "1. Easy to access databases with ODBC/JDBC Drivers"),
+           Cons = c("1. StringsAsFactors = True<br>2. Slow on large data", 
+                    "1. Doesn't handle non-standard field names well<br>2. Data type interpolation not great for non-standard data sets", 
+                    "1. Can be slow depending on network connection")) %>% 
+  datatable(colnames = c("Library", "Example Functions", "Pros", "Cons"), rownames = FALSE, escape = FALSE)
+```
