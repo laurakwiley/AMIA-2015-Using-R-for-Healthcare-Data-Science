@@ -562,7 +562,7 @@ glance(model) %>%
 
 Let's make a Shiny Application that takes inputs, uses the model weights we developed and gives out a predicted warfarin dose for the visitor:
 
-<iframe src="https://laurawiley.shinyapps.io/AMIA_2015_RTutorial_CaseStudy1_ShinyApp" style="border: none; width: 1000px; height: 1000px"></iframe>
+<iframe src="https://laurawiley.shinyapps.io/AMIA_2015_RTutorial_CaseStudy1_ShinyApp" style="border: none; width: 500px; height: 700px"></iframe>
 
 ```{r shiny_app, eval = FALSE, echo = TRUE}
 shinyApp(
