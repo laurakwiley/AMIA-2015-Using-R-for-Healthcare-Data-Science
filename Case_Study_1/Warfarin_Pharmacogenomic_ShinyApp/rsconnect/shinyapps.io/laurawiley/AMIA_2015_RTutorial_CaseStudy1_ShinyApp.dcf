@@ -1,0 +1,10 @@
+name: AMIA_2015_RTutorial_CaseStudy1_ShinyApp
+account: laurawiley
+server: shinyapps.io
+appId: 68308
+bundleId: 308522
+url:
+        https://laurawiley.shinyapps.io/AMIA_2015_RTutorial_CaseStudy1_ShinyApp
+when: 1447265241.99035
+asMultiple: FALSE
+asStatic: FALSE
