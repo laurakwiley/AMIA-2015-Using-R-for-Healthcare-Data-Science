@@ -562,7 +562,7 @@ glance(model) %>%
 
 Let's make a Shiny Application that takes inputs, uses the model weights we developed and gives out a predicted warfarin dose for the visitor:
 
-<iframe src="https://laurawiley.shinyapps.io/AMIA_2015_RTutorial_CaseStudy1_ShinyApp" style="border: none; width: 500px; height: 700px"></iframe>
+<iframe src="https://laurawiley.shinyapps.io/AMIA_2015_RTutorial_CaseStudy1_ShinyApp" style="border: none; width: 1000px; height: 1000px"></iframe>
 
 ```{r shiny_app, eval = FALSE, echo = TRUE}
 shinyApp(
@@ -581,13 +581,17 @@ shinyApp(
       strong(em("THIS IS A PROGRAMMING EXAMPLE ONLY - DO NOT USE FOR PATIENT CARE!")),
       br(),br(),
       strong(em("IF YOU HAVE QUESTIONS ABOUT YOUR WARFARIN DOSE, PLEASE CONTACT YOUR DOCTOR.")),
+      br(),br(),
+      p("You Selected: "),
       tableOutput("selectedvalues"),
+      br(),br(),
       textOutput("warfarindose")
     )
   ),
   
   server = function(input, output){
     library(dplyr)
+    library(tidyr)
     
     input_model <- eventReactive(input$calc, {
       data.frame(Age = input$age,
@@ -630,7 +634,7 @@ shinyApp(
       summarise(round(sum(weighted)^2))
       
       
-      paste("Based on the above values, the predicted warfarin dose is: ", predicted_dose, "mg per week")
+      paste0("Based on the values entered, the predicted warfarin dose is: ", predicted_dose, "mg per week, or ~", round(predicted_dose/7),"mg per day.")
     })
   },
   
