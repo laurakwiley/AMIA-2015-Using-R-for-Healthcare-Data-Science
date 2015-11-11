@@ -1,7 +1,6 @@
 ---
-title: "Using R For Healthcare Data Science"
-author: "Laura WIley"
-date: "October 9, 2015"
+title: 'Case Study 1: A Data Scientist''s Workflow in R'
+author: "Laura Wiley"
 output:
   html_document:
     css: pure-table.css
@@ -9,7 +8,6 @@ output:
     fontsize: 12pt
   pdf_document:
     toc: yes
-subtitle: 'Case Study 1: A Data Scientist''s Workflow in R - Report Version'
 ---
 
 ```{r setup, include=FALSE}
