@@ -13,17 +13,24 @@ subtitle: 'Case Study 1: A Data Scientist''s Workflow in R - Report Version'
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
-library(readr)
-library(xtable)
+
+
+libraries <- c("readr", "knitr", "DT", "purrr", "lubridate", "stringr", "tidyr", "ggplot2", "broom", "dplyr","magrittr","shiny")
+libs_to_install <- libraries[!(libraries %in% installed.packages()[,"Package"])]
+if(length(libs_to_install)>0){install.packages(libs_to_install)}
+
+library(magrittr)
 library(knitr)
+library(readr)
 library(DT)
 library(purrr)
 library(lubridate)
 library(stringr)
+library(broom)
 library(tidyr)
 library(ggplot2)
-library(broom)
 library(dplyr)
+library(shiny)
 ```
 
 This report is a portion of the AMIA 2015 Tutorial on Using R for Healthcare Data Science. All code and data available at my [GitHub page](https://github.com/laurakwiley/AMIA-2015---Using-R-for-Healthcare-Data-Science).
@@ -84,48 +91,464 @@ Let's load up our IWPC data!  We will be using a slightly modified form of the [
 1. The non-standard column names (contains spaces, returns, and symbols)
 2. Changing data types. This data is from a consortium and contains different types of data in each column based on the study site.
 
-This last reason is the deal breaker for readr. Readr interpolates the variable type (column, date, number, etc.) based on the first 100 rows or via manual specification.  Given the large number of columns (78) this becomes annoying at best. However, since we can't take advantage of readr automatically making a tbl_df() object, so we will have to do so manually.
+This last reason is the deal breaker for readr. Readr interpolates the variable type (column, date, number, etc.) based on the first 100 rows or via manual specification.  Given the large number of columns (22) this becomes annoying at best. However, since we can't take advantage of readr automatically making a tbl_df() object, so we will have to do so manually.
 
+<br>
 ```{r read_data}
 iwpc_data <- read.delim(file = "iwpc_data_7_3_09_revised3.txt") %>% tbl_df()
 ```
 
+<br>
+
 Let's take a look at the type of data we are working with.
+
+<br>
 
 ```{r view_original_data, echo = FALSE}
 iwpc_data %>% 
   group_by(Project.Site) %>% 
   sample_n(1) %>% 
-  datatable(rownames = FALSE, options = list(pageLength = 3, scrollX = TRUE))
+  datatable(rownames = FALSE, options = list(columnDefs = list(list(className = "dt-center", targets = c(0:21))),paging = FALSE, scrollX = TRUE, scrollY = '300px', bFilter = FALSE))
+```
 
+<br>
+It is also important in R to know what data types are being used, as this can affect the behaviour of some functions.
+<br>
+
+```{r view_data_types}
 iwpc_data %>% 
   map(~class(.x)) %>% 
   t() %>% 
-  datatable(rownames = FALSE, options = list(pageLength = 5))
+  as.data.frame() %>% 
+  mutate(Variable_Name = rownames(.), Variable_Type = V1) %>% 
+  select(Variable_Name, Variable_Type) %>% 
+  datatable(rownames = FALSE, options = list(paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
 ```
 
-
+<br>
 
 ### Tidying your Data
 
 Looking at our data above we see there are a number of problems:
 
-1. Long, non-standard column names
-2. Lots of columns
-3. Lots of different types of entries for each column
+1. Column names are not standard.
+2. Estimated Target INR an excel adverse reaction.
 
+Let's first fix the column names - which is easy to do with dplyr.
+
+```{r rename_columns}
+iwpc_data %<>% 
+  rename(subject_id = PharmGKB.Subject.ID,
+         sample_id = PharmGKB.Sample.ID,
+         project_site = Project.Site,
+         gender = Gender,
+         race_reported = Race..Reported.,
+         race_omb = Race..OMB.,
+         ethnicity_reported = Ethnicity..Reported.,
+         ethnicitiy_omb = Ethnicity..OMB.,
+         age = Age,
+         height = Height..cm.,
+         weight = Weight..kg.,
+         indication = Indication.for.Warfarin.Treatment,
+         comorbidities = Comorbidities,
+         medications = Medications,
+         target_inr = Target.INR,
+         target_inr_estimated = Estimated.Target.INR.Range.Based.on.Indication,
+         reached_stable_dose = Subject.Reached.Stable.Dose.of.Warfarin,
+         therapeutic_warfarin_dose = Therapeutic.Dose.of.Warfarin,
+         inr_on_warfarin = INR.on.Reported.Therapeutic.Dose.of.Warfarin,
+         smoker = Current.Smoker,
+         cyp2c9_consensus = CYP2C9.consensus,
+         vkorc1_1639_consensus = VKORC1..1639.consensus)
+```
+
+To fix the Target INR problem, we will need to use some basic string functions from stringr.  First though let's get a good look at the extent of the problem by looking at all the distinct values in this field.
+<br>
+```{r distinct_target_inr_estimated}
+iwpc_data %>% 
+  count(target_inr_estimated) %>% 
+  datatable(rownames = FALSE, colnames = c("Target INR", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+<br>
+From this it looks like we have two values that need to be changed: 3-Feb and 4-Mar.  These correspond to the ranges 2-3 and 3-4 respectively. We can use mutate the make this change, but it will require a bit of effort.
+
+As of the writing of this tutorial there is not a conditional mutate function in dplyr (though it's being discussed by the development team). Because of that, we must make our own conditionals with ifelse().
+
+```{r fix_target_inr_estimated}
+iwpc_data %<>% 
+  mutate(target_inr_estimated = as.character(target_inr_estimated)) %>% 
+  mutate(target_inr_estimated = ifelse(target_inr_estimated == "3-Feb",
+                                       yes = "2-3", 
+                                       no = ifelse(target_inr_estimated == "4-Mar",
+                                                   yes = "3-4", 
+                                                   no = target_inr_estimated)))
+```
+
+And then checking our work:
+<br>
+```{r distinct_target_inr_estimated_post_mod}
+iwpc_data %>% 
+  count(target_inr_estimated) %>% 
+  datatable(rownames = FALSE, colnames = c("Target INR", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
 
 ### Manipulating Data
 
-#### Working with Dates
+In this case since we are trying to replicate an existing analysis plan we have the easy job of just trying to massage our data into the variables used the previous model.  In this case they used a lot of dummy coded variables in their analysis. 
 
-#### Working with Text
+ **They Used:**
+ 
+ - Age in decades = 1 for 10-19, etc...
+ - VKORC1 G/A = 1 if heterozygous
+ - VKORC1 A/A = 1 if homozygous for A
+ - VKORC1 genotype unknown = 1 
+ - CYP2C9 \*1/\*2 = 1 if \*1/\*2
+ - CYP2C9 \*1/\*3 = 1 if \*1/\*3
+ - CYP2C9 \*2/\*2 = 1 if homozygous \*2 
+ - CYP2C9 \*2/\*3 = 1 if \*2/\*3
+ - CYP2C9 \*3/\*3 = 1 if homozygous \*3
+ - CYP2C9 genotype unknown = 1 
+ - Asian Race = 1
+ - Black/African American = 1
+ - Missing or Mixed race = 1
+ - Amiodarone status = 1
+ - Enzyme inducer status = 1 if any of: rifampin, carbamazepine, phenytoin, rifampicin
+
+  **We Have:**
+  
+ - Age: 10-19, 20-29, 30-39 etc.
+ - VKORC1: A/A, A/G, G/G
+ - CYP2C9: combinations of: \*1, \*2, \*3, \*5, \*6, \*8, \*11, etc.
+ - Race: Asian, Black or African America, White, Other
+ - Medications: character list of medications, lack of medications, etc.
+
+Based on this it looks like we will need to:
+
+1. Adjust age to extract decade only
+2. Dummy Code VKORC1 Genotype
+3. Dummy Code CYP2C9 Genotype
+4. Dummy Code Race
+5. Extract from medications:
+    a. Amiodarone
+    b. Enzyme Inducers - specifically: rifampin, carbamazepine, phenytoin, rifampicin
+
+#### Age Processing
+
+Again, always look at your data to make sure it follows the formatting you're expecting.
+
+```{r age_look}
+iwpc_data %>% 
+  count(age) %>% 
+  datatable(rownames = FALSE, colnames = c("Age", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+<br>
+Ok let's fix the excel nightmare:
+
+```{r age_fix_excel}
+iwpc_data %<>% 
+  mutate(age = as.character(age)) %>% 
+  mutate(age = ifelse(age == "19-Oct", 
+                      yes = "10 - 19", no = age))
+```
+
+Confirm it's fixed:
+
+```{r age_look_postfix, echo = FALSE}
+iwpc_data %>% 
+  count(age) %>% 
+  datatable(rownames = FALSE, colnames = c("Age", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+
+Now to the fun stuff. In this case we really only need the first number of the string. This is not the safest transformation, but it makes the processing easier and code less complex than coding ifelse() statements for each case. I always like to look at the impact of my work before confirming the change.
+
+```{r process_dummy_age}
+iwpc_data %>% 
+  count(age, 
+        substr(age,1,1), 
+        as.numeric(substr(age,1,1))) %>% 
+  datatable(rownames = FALSE, colnames = c("Age", "Substring of Age", "Numeric Version of Substring", "N"),  options = list(order = list(3, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+
+iwpc_data %<>% 
+  mutate(age_decades = as.numeric(substr(age,1,1)))
+```
+<br>
+#### Dummy Code VKORC1 Genotypes
+
+Again first look at the genotypes.
+
+```{r vkorc1_look}
+iwpc_data %>% 
+  count(vkorc1_1639_consensus) %>% 
+  datatable(rownames = FALSE, colnames = c("VKORC1 Genotype", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+<br>
+We can follow the same logic as before with the ifelse() statements.
+
+```{r vkorc1_1, echo = TRUE, eval=FALSE}
+iwpc_data %>% 
+  mutate(vkorc1_1639_ag = ifelse(str_detect(vkorc1_1639_consensus,"A/G"),
+                                 yes = 1, no = 0),
+         vkorc1_1639_aa = ifelse(str_detect(vkorc1_1639_consensus, "A/A"),
+                                 yes = 1,no = 0),
+         vkorc1_1639_unknown = ifelse(is.na(vkorc1_1639_consensus),
+                                      yes = 1,no = 0)) %>% 
+  count(vkorc1_1639_consensus,vkorc1_1639_ag,vkorc1_1639_aa,vkorc1_1639_unknown) %>% 
+  datatable(colnames = c("VKORC1 1639","VKORC1 A/G","VKORC1 A/A","VKORC1 Unknown","N"), rownames = FALSE, options = list(pageLength = 12, bFilter = FALSE, info = FALSE, paging = FALSE))
+```
+<br>
+Wait! I thought we set the values for VKORC1 A/G and VKORC1 A/A to 0 if it didn't match the regular expression! Why are those fields blank when the VKORC1 genotype was missing? 
+
+Well that has to do with how R handles NA values. If you don't know what the value for that field is, R has no idea if the regex matches. Hypothetically that person could match that genotype we just don't know.  Because of this we have to adjust our approach.  Now instead of defining you by what you are, we'll group you by what you are not:  If you are not NA *and* you are not equal to A/G we set you to 0 otherwise (e.g., you equal A/G) we set you to one.
+
+```{r vkorc1_mutate}
+iwpc_data %<>% 
+  mutate(vkorc1_1639_ag = ifelse(is.na(vkorc1_1639_consensus) | 
+                                   !str_detect(vkorc1_1639_consensus,"A/G"),
+                                 yes = 0,  no = 1),
+         vkorc1_1639_aa = ifelse(is.na(vkorc1_1639_consensus) | 
+                                   !str_detect(vkorc1_1639_consensus, "A/A"),
+                                 yes = 0, no = 1),
+         vkorc1_1639_unknown = ifelse(is.na(vkorc1_1639_consensus),
+                                      yes = 1, no = 0))
+```
+
+And checking our work:
+```{r vkorc1_check, echo=FALSE}
+iwpc_data %>% 
+  count(vkorc1_1639_consensus,vkorc1_1639_ag,vkorc1_1639_aa,vkorc1_1639_unknown) %>% 
+  datatable(colnames = c("VKORC1 1639","VKORC1 A/G","VKORC1 A/A","VKORC1 Unknown","N"), rownames = FALSE, options = list(pageLength = 12, bFilter = FALSE, info = FALSE, paging = FALSE))
+```
+<br>
+
+#### Dummy Code CYP2C9 Genotype
+
+Based on the same logic as VKORC1, we will use the exclusionary strategy for dummy coding CYP2C9 genotype. Note that here we have a lot more genotypes than we use in the model. 
+
+```{r cyp2c9_look}
+iwpc_data %>% 
+  count(cyp2c9_consensus) %>% 
+  datatable(rownames = FALSE, colnames = c("CYP2C9 Genotype", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+<br>
+
+
+```{r fix_cycp2c9}
+iwpc_data %<>% 
+  mutate(cyp2c9_1_2 = ifelse(is.na(cyp2c9_consensus) |
+                               !str_detect(cyp2c9_consensus,"\\*1/\\*2"),
+                             yes = 0, no = 1),
+         cyp2c9_1_3 = ifelse(is.na(cyp2c9_consensus) |
+                               !str_detect(cyp2c9_consensus,"\\*1/\\*3"),
+                             yes = 0, no = 1),
+         cyp2c9_2_2 = ifelse(is.na(cyp2c9_consensus) |
+                               !str_detect(cyp2c9_consensus,"\\*2/\\*2"),
+                             yes = 0, no = 1),
+         cyp2c9_2_3 = ifelse(is.na(cyp2c9_consensus) |
+                               !str_detect(cyp2c9_consensus,"\\*2/\\*3"),
+                             yes = 0, no = 1),
+         cyp2c9_3_3 = ifelse(is.na(cyp2c9_consensus) |
+                               !str_detect(cyp2c9_consensus,"\\*3/\\*3"),
+                             yes = 0, no = 1),
+         cyp2c9_unknown = ifelse(is.na(cyp2c9_consensus),
+                                 yes = 1,no = 0))
+```
+
+Checking our work:
+
+```{r cyp2c9_1, echo=FALSE}
+iwpc_data %>% 
+  count(cyp2c9_consensus, cyp2c9_1_2, cyp2c9_1_3,cyp2c9_2_2,cyp2c9_2_3,cyp2c9_3_3,cyp2c9_unknown) %>% 
+  datatable(colnames = c("CYP2C9","*1/*2","*1/*3","*2/*2","*2/*3","*3/*3","Unknown","N"), rownames = FALSE, options = list(order = list(7, "dsc"), paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+
+#### Dummy Code Race
+
+
+```{r race_look}
+iwpc_data %>% 
+  count(race_omb) %>% 
+  datatable(rownames = FALSE, colnames = c("Race", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+<br>
+
+This is clean and easy to fix with mutate and ifelse().
+
+```{r race_1, echo=TRUE}
+iwpc_data %<>% 
+  mutate(asian = ifelse(str_detect(race_omb, "Asian"),
+                        yes = 1,
+                        no = 0),
+         african_american = ifelse(str_detect(race_omb, "Black or African American"),
+                                   yes = 1, 
+                                   no = 0),
+         missing_or_mixed_race = ifelse(str_detect(race_omb, "Unknown"),
+                                        yes = 1,
+                                        no = 0))
+```
+
+Checking our work:
+```{r race_2}
+iwpc_data %>% 
+  count(race_omb, asian, african_american, missing_or_mixed_race) %>% 
+  datatable(colnames = c("Race OMB","Asian","African American","Missing/Mixed Race","N"), rownames = FALSE, options = list(pageLength = 12, bFilter = FALSE, info = FALSE, paging = FALSE))
+```
+<br>
+
+#### Process Medications
+
+The medications column is an ugly beast. Remember how this data came from multiple studies? Well that means this field has a lot going on.  Some sites asked about specific drugs and only include if they took those drugs or not. Others are from EHR linked databases and they simply exported the medication list of the patient (don't even begin to ask which medication list - timepoint, copy/paste hold overs etc.!).
+
+Let's take a quick look at the format to see what we're getting ourselves into.
+
+```{r medication_look}
+iwpc_data %>% 
+  count(medications) %>% 
+  datatable(rownames = FALSE, colnames = c("Medications", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE, scrollY = '300px'))
+```
+<br>
+
+##### Amiodarone
+
+Let's filter the medications to look at those matching amiodarone
+
+```{r amiodarone_count}
+iwpc_data %>% 
+  filter(str_detect(medications, "amiodarone")) %>% 
+  count(medications) %>% 
+  datatable(rownames = FALSE, colnames = c("Medications", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE, scrollY = '300px'))
+```
+
+From this look we know that there are a lot of qualifiers and other textual clues. A really great trick for regex development is to use str_extract to get just the snippet of text mentioning amiodarone. Before we get there though, always make sure your more complex regex is grabbing the same number of rows as your general regex.
+
+```{r amiodarone_regex_count}
+iwpc_data %>% filter(str_detect(medications, "amiodarone")) %>% count()
+iwpc_data %>% filter(str_detect(medications, "(^|;)[a-z ]*amiodarone[a-z ]*($|;)")) %>% count()
+```
+
+Then look at the text snippet:
+
+```{r amiodarone_snippet}
+iwpc_data %>% 
+  mutate(amiodarone_text = str_extract(medications, "(^|;)[a-z ]*amiodarone[a-z ]*($|;)")) %>% 
+  count(amiodarone_text) %>% 
+  datatable(rownames = FALSE, colnames = c("Amiodarone_Snippet", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+
+Now let's write a regex to extract amiodarone only where it does not say, "not" or "no" amiodarone.
+
+```{r amiodarone_snippet_regex_builder}
+iwpc_data %>% 
+  mutate(amiodarone_text = str_extract(medications, "(^|;)[a-z ]*amiodarone[a-z ]*($|;)"), 
+         amiodarone_bool = ifelse( !is.na(medications) & str_detect(medications, "(?<!not? )amiodarone"), 
+                                   yes = 1, 
+                                   no = 0)) %>% 
+  count(amiodarone_text, amiodarone_bool) %>% 
+  datatable(rownames = FALSE, colnames = c("Amiodarone_Snippet", "Amiodarone_Detector", "N"),  options = list(order = list(1, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
+
+Great! Our regex works let's implement it!
+
+```{r fix_amiodarone}
+iwpc_data %<>% 
+  mutate(amiodarone = ifelse( !is.na(medications) & str_detect(medications, "(?<!not? )amiodarone"), 
+                              yes = 1, 
+                              no = 0))
+```
+
+##### Enzyme Enducers
+
+I will leave it an excercise for you to go through the regex development process with these drugs, but here are the finished regexes. 
+
+```{r enxzyme_inducers_breakdown}
+iwpc_data %<>% 
+  mutate(carbamazepine = ifelse(!is.na(medications) & str_detect(medications,"(?<!not )carbamazepine"), yes = 1, no = 0),
+         phenytoin = ifelse(!is.na(medications) & str_detect(medications,"(?<!not )phenytoin"),yes = 1,no = 0),
+         rifampin = ifelse(!is.na(medications) & str_detect(medications,"(?<!not )rifampin"),yes = 1,no = 0),
+         rifampicin = ifelse(!is.na(medications) & str_detect(medications,"(?<!not )rifampicin"),yes = 1,no = 0))
+```
+
+Remember though, we only need enzyme inducer status - i.e. did the patient take *any* of these drugs? Thankfully an easy way to create this variable is just take add up the four medications columns - if it is greater than 1 they took at least one of the medications!
+
+```{r enzyme_inducers_combined}
+iwpc_data %<>% 
+  mutate(enzyme_inducers = ifelse((carbamazepine + phenytoin + rifampin + rifampicin) > 0, yes = 1, no = 0))
+```
+
+Checking our data:
+
+```{r check_enzymes, echo=FALSE}
+iwpc_data %>% 
+  count(carbamazepine, phenytoin, rifampin, rifampicin, enzyme_inducers) %>% 
+  datatable(rownames = FALSE, colnames = c("Carbamazepine", "Phenytoin", "Rifampin", "Rifampicin", "Enzyme_Inducers", "N"),  options = list(order = list(5, "dsc"),  paging = FALSE, bFilter = FALSE, info = FALSE), extensions = 'FixedHeader')
+```
 
 ## Analysis Phase
 
+Phew! Now that our data cleaning is finished, let's get down to the fun - modeling our data!
+
+I'm a big proponent of visualizing your data to make sure there's nothing wonky happening. Let's take a look at the outcome of interest: stable warfarin dose.
+
+```{r plot_warfarin_dose}
+iwpc_data %>% 
+  ggplot(aes(x = 1, y = therapeutic_warfarin_dose)) + geom_boxplot()
+```
+
+Oh, that's not pretty. In fact it is common for warfarin dose to use the sqrt of the final dose.
+
+```{r plot_sqrt_warfarin_dose}
+iwpc_data %>% 
+  ggplot(aes(x = 1, y = sqrt(therapeutic_warfarin_dose))) + geom_boxplot()
+```
+
+
+Let's make a transformed outcome variable that is the square root of the therapeutic dose.
+
+```{r fix warfarin_dose}
+iwpc_data %<>% mutate(sqrt_warfarin_dose = sqrt(therapeutic_warfarin_dose))
+```
+
+
 ### Modeling
 
+We can use the lm() function to run a linear model
+```{r model}
+iwpc_data %>% 
+  lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
+
+iwpc_data %>% 
+  lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers) %>% 
+  summary()
+```
+
 ### Model Tiying and Manipulation
+
+So if we were running multiple models or trying to do any processing of these models it would be really annoying to work with the above output. In fact R does not even store the p-value for each coefficient. Those are all calculated on fly when you view the summary of the model.  Thankfully David Rob made a package called Broom that fixes this beautifully!
+
+```{r model_and_broom, eval = FALSE}
+model <-  iwpc_data %>% lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
+
+warfarin_pharmacogenomic_model <- tidy(model)
+warfarin_pharmacogenomic_model
+```
+
+```{r tidy_output, echo = FALSE}
+model <-  iwpc_data %>% lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
+warfarin_pharmacogenomic_model <- tidy(model)
+
+
+tidy(model) %>% 
+  datatable(rownames = FALSE, options = list(paging = FALSE, bFilter = FALSE, info = FALSE, columnDefs = list(list(className = "dt-center", targets = c(0:4)))), extensions = 'FixedHeader')
+```
+
+<br>
+
+We can also see the overall model fit information in a clean dataframe:
+
+```{r glance_model}
+glance(model) %>% 
+  datatable(options = list(paging = FALSE, bFilter = FALSE, info = FALSE, scrollX = TRUE, columnDefs = list(list(className = "dt-center", targets = c(0:4)))))
+```
+
 
 ### Data and Model Visualization
 
@@ -133,5 +556,80 @@ Looking at our data above we see there are a number of problems:
 
 ### Writing Reports and Publishing
 
+
+
 ### Deploying Online Tools
+
+Let's make a Shiny Application that takes inputs, uses the model weights we developed and gives out a predicted warfarin dose for the visitor:
+
+```{r shiny_app, eval = TRUE, echo=FALSE}
+shinyApp(
+  
+  ui = pageWithSidebar(
+    headerPanel("Warfarin Pharmagenomic Dose Predictor"),
+    sidebarPanel(selectInput("age", "Age in Decades:", choices = c("10-19","20-29","30-39", "40-49", "50-59", "60-69", "70-79", "80-89", "90+")),
+                 radioButtons("race", "Race:", choices = c( "Other or Unknown", "Asian", "African American", "White")),
+                 radioButtons("vkorc1", "VKORC1 Genotype:", choices = c("Unknown", "G/G", "G/A", "A/A")),
+                 radioButtons("cyp2c9", "CYP2C9 Genotype:", choices = c("Unknown", "*1/*2", "*1/*3", "*2/*2", "*2/*3", "*3/*3","Other")), 
+                 checkboxInput('amiodarone', "Taking Amiodarone", FALSE),
+                 checkboxInput("enzyme_inducers", "Taking an Enzyme Inducer (rifampin, carbamazepine, phenytoin or rifampicin)", FALSE),
+                 actionButton("calc","Calculate")
+                 ),
+    mainPanel(
+      tableOutput("selectedvalues"),
+      textOutput("warfarindose")
+    )
+  ),
+  
+  server = function(input, output){
+    library(dplyr)
+    
+    input_model <- eventReactive(input$calc, {
+      data.frame(Age = input$age,
+                 Race = input$race,
+                 VKORC1 = input$vkorc1,
+                 CYP2C9 = input$cyp2c9,
+                 On_Amiodarone = input$amiodarone,
+                 On_Enzyme_Inducers = input$enzyme_inducers)
+    })
+    
+    output$selectedvalues <- renderTable({input_model() %>% 
+        gather(key = Variable, value = Selection)})
+    
+
+    
+    output$warfarindose <- renderText({
+          warfarin_model <- structure(list(term = c("intercept", "age_decades", "vkorc1_1639_ag", "vkorc1_1639_aa", "vkorc1_1639_unknown", "cyp2c9_1_2", "cyp2c9_1_3", "cyp2c9_2_2", "cyp2c9_2_3", "cyp2c9_3_3", "asian", "african_american", "missing_or_mixed_race", "amiodarone", "enzyme_inducers"), estimate = c(8.28092953788836, -0.283786900016807, -0.800068515352432, -1.56451454024173, -0.595825280765066, -0.465304224113711, -0.892056417892715, -1.08355935593238, -1.86263474384314, -2.49990281796991, -0.686065650288828, -0.0769652407947399, -0.341619674379834, -0.668291885082912, 0.539804214460087)), row.names = c(NA, -15L), class = "data.frame", .Names = c("term", "estimate"))
+    
+    predicted_dose <- input_model() %>% 
+      mutate(intercept = 1,
+             age_decades = as.numeric(substr(Age, 1, 1)),
+             vkorc1_1639_ag = ifelse(VKORC1 == "G/A", 1, 0),
+             vkorc1_1639_aa = ifelse(VKORC1 == "A/A", 1, 0),
+             vkorc1_1639_unknown = ifelse(VKORC1 == "Unknown", 1, 0),
+             cyp2c9_1_2 = ifelse(CYP2C9 == "*1/*2", 1, 0),
+             cyp2c9_1_3 = ifelse(CYP2C9 == "*1/*3", 1, 0),
+             cyp2c9_2_2 = ifelse(CYP2C9 == "*2/*2", 1, 0), 
+             cyp2c9_2_3 = ifelse(CYP2C9 == "*2/*3", 1, 0), 
+             cyp2c9_3_3 = ifelse(CYP2C9 == "*3/*3", 1, 0), 
+             asian = ifelse(Race == "Asian", 1, 0),
+             african_american = ifelse(Race == "African American", 1, 0),
+             missing_or_mixed_race = ifelse(Race == "Other or Unknown", 1, 0), 
+             amiodarone = ifelse(On_Amiodarone, 1, 0),
+             enzyme_inducers = ifelse(On_Enzyme_Inducers, 1, 0)) %>% 
+      select(-c(Age:On_Enzyme_Inducers)) %>% 
+      gather(key = term, value = value) %>% 
+      mutate(term = as.character(term)) %>% 
+      inner_join(warfarin_model) %>% 
+      mutate(weighted = value * estimate) %>% 
+      summarise(round(sum(weighted)^2))
+      
+      
+      paste("Based on the above values, the predicted warfarin dose is: ", predicted_dose, "mg per week")
+    })
+  },
+  
+  options = list(height = 1000)
+)
+```
 
