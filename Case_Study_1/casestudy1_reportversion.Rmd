@@ -6,6 +6,7 @@ output:
   html_document:
     css: pure-table.css
     toc: yes
+    fontsize: 12pt
   pdf_document:
     toc: yes
 subtitle: 'Case Study 1: A Data Scientist''s Workflow in R - Report Version'
@@ -15,7 +16,7 @@ subtitle: 'Case Study 1: A Data Scientist''s Workflow in R - Report Version'
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
 
-libraries <- c("readr", "knitr", "DT", "purrr", "lubridate", "stringr", "tidyr", "ggplot2", "broom", "dplyr","magrittr","shiny")
+libraries <- c("readr", "knitr", "DT", "purrr", "lubridate", "stringr", "tidyr", "ggplot2", "broom", "dplyr","magrittr","shiny", "cowplot","ggfortify")
 libs_to_install <- libraries[!(libraries %in% installed.packages()[,"Package"])]
 if(length(libs_to_install)>0){install.packages(libs_to_install)}
 
@@ -29,6 +30,8 @@ library(stringr)
 library(broom)
 library(tidyr)
 library(ggplot2)
+library(cowplot)
+library(ggfortify)
 library(dplyr)
 library(shiny)
 ```
@@ -513,10 +516,10 @@ iwpc_data %<>% mutate(sqrt_warfarin_dose = sqrt(therapeutic_warfarin_dose))
 We can use the lm() function to run a linear model
 ```{r model}
 iwpc_data %>% 
-  lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
+  lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + cyp2c9_unknown + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
 
 iwpc_data %>% 
-  lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers) %>% 
+  lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + cyp2c9_unknown + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers) %>% 
   summary()
 ```
 
@@ -525,14 +528,14 @@ iwpc_data %>%
 So if we were running multiple models or trying to do any processing of these models it would be really annoying to work with the above output. In fact R does not even store the p-value for each coefficient. Those are all calculated on fly when you view the summary of the model.  Thankfully David Rob made a package called Broom that fixes this beautifully!
 
 ```{r model_and_broom, eval = FALSE}
-model <-  iwpc_data %>% lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
+model <-  iwpc_data %>% lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + cyp2c9_unknown + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
 
 warfarin_pharmacogenomic_model <- tidy(model)
 warfarin_pharmacogenomic_model
 ```
 
 ```{r tidy_output, echo = FALSE}
-model <-  iwpc_data %>% lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
+model <-  iwpc_data %>% lm(formula = sqrt_warfarin_dose ~ age_decades + vkorc1_1639_ag + vkorc1_1639_aa + vkorc1_1639_unknown + cyp2c9_1_2 + cyp2c9_1_3 + cyp2c9_2_2 + cyp2c9_2_3 + cyp2c9_3_3 + cyp2c9_unknown + asian + african_american + missing_or_mixed_race + amiodarone + enzyme_inducers)
 warfarin_pharmacogenomic_model <- tidy(model)
 
 
@@ -546,16 +549,79 @@ We can also see the overall model fit information in a clean dataframe:
 
 ```{r glance_model}
 glance(model) %>% 
-  datatable(options = list(paging = FALSE, bFilter = FALSE, info = FALSE, scrollX = TRUE, columnDefs = list(list(className = "dt-center", targets = c(0:4)))))
+  datatable(options = list(paging = FALSE, bFilter = FALSE, info = FALSE, scrollX = TRUE, columnDefs = list(list(className = "dt-center", targets = c(0:11)))))
+```
+
+### Data and Model Visualization
+
+Broom makes it easy to make plots with the model details.  Let's use a forest plot to visualize the betas of the model.
+
+```{r model_forest,  fig.align='center'}
+warfarin_pharmacogenomic_model %>% 
+  filter(term != "(Intercept)") %>% 
+  mutate(variable = factor(term, levels = rev(c("age_decades", "asian","african_american","missing_or_mixed_race", "amiodaron","enzyme_inducers","vkorc1_1639_unkown","vkorc1_1639_ag","vkorc1_1639_aa","cyp2c9_unknown", "cyp2c9_1_2","cyp2c9_1_3","cyp2c9_2_2","cyp2c9_2_3","cyp2c9_3_3")))) %>% 
+  ggplot() +
+  geom_pointrange(aes(x = variable, y = estimate, ymin = estimate - std.error, ymax = estimate + std.error)) + 
+  coord_flip()
+```
+
+We can also visualize the model fit easily with the package ggfortify.
+
+```{r model_fit, fig.height=10, fig.align='center'}
+autoplot(model)
 ```
 
 
-### Data and Model Visualization
+Even if you are ultimately going to put a table with the summary statistics describing your dataset, I strongly recommend plotting your data at somepoint during your data QC and analysis. I have discovered a number of problems over the years that were only visible in plots, but looked fine otherwise.
+
+Let's make plots for each of the variables in our model and then use cowplot to put them into a single figure.
+
+```{r variable_plots, fig.height=11, message=FALSE,  fig.align='center'}
+warfarin_dose <- iwpc_data %>% 
+  ggplot(aes(x = therapeutic_warfarin_dose)) + geom_histogram() + 
+  xlab("Weekly Warfarin Dose") + ylab("Count")
+
+age <- iwpc_data %>% 
+  ggplot(aes(x = age)) + geom_histogram() + 
+  xlab("Age") + ylab("Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+race <- iwpc_data %>% 
+  ggplot(aes(x = race_omb)) + geom_histogram() +
+  xlab("Race") + ylab("Count") +
+  scale_x_discrete(breaks = c("Asian", "Black or African American", "White", "Unknown"), labels = c("Asian", "Black", "White", "Unk."))
+
+vkorc1 <- iwpc_data %>% 
+  ggplot(aes(x = vkorc1_1639_consensus)) + geom_histogram() +
+  xlab("VKORC1 Genotype") + ylab("Count")
+
+cyp2c9 <- iwpc_data %>% 
+  ggplot(aes(x = cyp2c9_consensus)) + geom_histogram() +
+  xlab("CYP2C9 Genotype") + ylab("Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+ggdraw() +
+  draw_plot(warfarin_dose, x = 0, y = 0.75, width = 1, height = 0.25) +
+  draw_plot(age, x = 0, y = 0.5, width = 1, height = 0.25) +
+  draw_plot(cyp2c9, x = 0, y = 0.25, width = 1, height = 0.25) +
+  draw_plot(vkorc1, x = 0, y = 0, width = 0.5, height = 0.25) +
+  draw_plot(race, x = 0.5, y = 0, width = 0.5, height = 0.25)
+```
+
+
+
+
 
 ## Dissemination Phase
 
 ### Writing Reports and Publishing
 
+RMarkdown is a great tool that offers a lot of flexibility for report generation. You can knit the same document into html, pdf, or a word doc. You can also even use R Markdown to make slides! It's easy to change output document type in R Studio. 
+
+![](images/r-markdown-formats.png) 
+
+There are great resource documents online - including a [2 page cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf?version=0.99.761&mode=desktop) and a [complete reference guide](https://www.rstudio.com/wp-content/uploads/2015/03/rmarkdown-reference.pdf?version=0.99.761&mode=desktop) that covers almost everything you need to know. 
 
 
 ### Deploying Online Tools
