@@ -564,6 +564,14 @@ Let's make a Shiny Application that takes inputs, uses the model weights we deve
 
 <iframe src="https://laurawiley.shinyapps.io/AMIA_2015_RTutorial_CaseStudy1_ShinyApp" style="border: none; width: 1000px; height: 1000px"></iframe>
 
+You can run the Shiny App locally:
+
+```{r run_shiny_app, eval = FALSE}
+library(shiny)
+runGist("cafba2c579b6922c4956")
+```
+
+Here is the code powering that Application. The details of this code are beyond the scope of the tutorial, but I highly recommend the [Shiny tutorial](http://shiny.rstudio.com/tutorial/) RStudio has created.
 ```{r shiny_app, eval = FALSE, echo = TRUE}
 shinyApp(
   
