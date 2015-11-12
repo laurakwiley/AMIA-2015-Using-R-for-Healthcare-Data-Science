@@ -11,7 +11,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
 
 libraries <- c("readr", "knitr", "DT", "purrr", "lubridate", "stringr", "tidyr", "ggplot2", "broom", "dplyr","magrittr","shiny", "cowplot","ggfortify")
@@ -273,7 +273,6 @@ iwpc_data %<>%
   mutate(age_decades = as.numeric(substr(age,1,1)))
 ```
 <br>
-
 #### Dummy Code VKORC1 Genotypes
 
 Again first look at the genotypes.
@@ -522,7 +521,7 @@ iwpc_data %>%
   summary()
 ```
 
-### Model Tidying and Manipulation
+### Model Tiying and Manipulation
 
 So if we were running multiple models or trying to do any processing of these models it would be really annoying to work with the above output. In fact R does not even store the p-value for each coefficient. Those are all calculated on fly when you view the summary of the model.  Thankfully David Rob made a package called Broom that fixes this beautifully!
 
@@ -607,6 +606,9 @@ ggdraw() +
   draw_plot(vkorc1, x = 0, y = 0, width = 0.5, height = 0.25) +
   draw_plot(race, x = 0.5, y = 0, width = 0.5, height = 0.25)
 ```
+
+
+
 
 
 ## Dissemination Phase
