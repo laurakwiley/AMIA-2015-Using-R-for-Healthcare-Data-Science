@@ -521,7 +521,7 @@ iwpc_data %>%
   summary()
 ```
 
-### Model Tiying and Manipulation
+### Model Tidying and Manipulation
 
 So if we were running multiple models or trying to do any processing of these models it would be really annoying to work with the above output. In fact R does not even store the p-value for each coefficient. Those are all calculated on fly when you view the summary of the model.  Thankfully David Rob made a package called Broom that fixes this beautifully!
 
