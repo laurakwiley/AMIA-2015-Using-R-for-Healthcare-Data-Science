@@ -2,7 +2,10 @@
 title: "Data Science Challenges"
 author: "Laura Wiley"
 date: "October 12, 2015"
-output: ioslides_presentation
+output:
+  ioslides_presentation:
+    css: "pure-table.css"
+    self_contained: true
 ---
 
 ```{r setup, include=FALSE}
@@ -24,6 +27,92 @@ library(ggplot2)
 library(dplyr)
 ```
 
+## Setting Expectations {.build}
+
+**Expect to:**
+
+ 1. Get a sense of what is possible with R.
+ 2. Set up important frameworks around how to do data science (forewarning - I'm biased!)
+ 3. Be warned of potential minefields
+
+**Do Not Expect to:**
+
+1. Completely understand all the code presented on your first try.
+2. Be exposed to all of the features of the mentioned packages.
+
+
+## The Data Scientist's Workflow
+
+<img src="images/datascience_workflow_cropped.svg" alt="Drawing"/>
+
+<div class="citation">
+Adapted from:
+
+ - David Robinson (http://varianceexplained.org/files/broom_presentation.pdf)
+ - Philip Guo (http://cacm.acm.org/blogs/blog-cacm/169199-data-science-workflow-overview-and-challenges/fulltext)
+</div>
+
+
+
+## R Solutions <img src="images/rstudio-inc.png" style="float: right; margin: 0px 0px 15px 15px;" width="250"/>
+
+<img src="images/datascience_workflow_cropped_badges_new.svg" width="100%" height="100%"/>
+
+
+## Preparation: Getting Data into R <img src="images/highres_readr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="100"/> {.smaller} 
+
+```{r dataio_summary, results='asis',echo=FALSE}
+data.frame(Library = c("Base R", 
+                       "readr/<br>readxl/<br>haven",
+                       "data.table",
+                       "RODBC/<br>RJDBC"),
+           Example_Functions = c("read.table(), read.csv()", 
+                                 "read_delim(), read_csv(), read_excel(), read_sas()", 
+                                 "fread",
+                                 "sqlQuery()"),
+           Pros = c("1. Built in<br>2. Can be helpful if field names are non-standard", 
+                    "1. Extremely fast<br> 2. Shows progress bar<br>3. Automatically creates tbl_df() object", 
+                    "1. Fastest data loading<br> 2. Don't have to specify delimiter",
+                    "1. Easy to access databases with ODBC/JDBC Drivers"),
+           Cons = c("1. StringsAsFactors = True<br>2. Slow on large data", 
+                    "1. Doesn't handle non-standard field names well<br>2. Data type interpolation not great for non-standard data sets",
+                    "1. Less sophisticated parser - can't recognize dates or factors automatically.<br>2. Does not handle edge cases well.",
+                    "1. Can be slow depending on network connection")) %>% 
+  datatable(colnames = c("", "Example Functions", "Pros", "Cons"), rownames = FALSE, escape = FALSE, options = list(pageLength = 12, bFilter = FALSE, info = FALSE, paging = FALSE, ordering = FALSE, columnDefs = list(list(className = "dt-center", targets = c(0))))) %>% formatStyle('Library', fontWeight = 'bold', `font-size` = '18px', backgroundColor = "Black", color = "White")
+```
+<br>
+<div class="warning">
+  <div class = "red2">**Warning:**</div>Each package has slightly different undesirable "features" so always check your data frame to make sure you're using the best option for your data set!
+<div/>
+
+
+## Preparation: Data Manipulation <img src="images/highres_dplyr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="100"/> {.smaller} 
+
+<div align="center">
+  <strong>tbl_df()</strong>
+  <br>
+  <img src="images/tbl_df.png" height="150"/>
+</div>
+
+<div class="columns-2">
+ <strong>filter()</strong> <br>
+ <img src="images/filter.svg" height="100"/>
+ 
+ <strong>select()</strong>
+ <br>
+ <img src="images/select.svg" height="100"/>
+ 
+ <strong>summarise()</strong>
+ <br>
+ <img src="images/select.svg" height="100"/>
+ 
+<strong>mutate()</strong>
+ <br>
+ <img src="images/mutate.svg" height="70"/>
+  <br>
+ </div>
+
+
 ## Using R for Reporting <img src="images/r-markdown-hexbin.png" style="float: right; margin: 0px 0px 15px 15px;" height="200"/>
 
 **Motivation** 
@@ -42,26 +131,4 @@ library(dplyr)
 
 
 
-
-## Getting Data in to R <img src="images/readr.png" style="float: right; margin: 0px 0px 15px 15px;" height="100"/> {.smaller .build} 
-
-```{r dataio_summary, results='asis',echo=FALSE}
-data.frame(Library = c("Base R", 
-                       "readr/<br>readxl/<br>haven",
-                       "RODBC/<br>RJDBC"),
-           Example_Functions = c("read.table(), read.csv()", 
-                                 "read_delim(), read_csv(), read_excel(), read_sas()", 
-                                 "sqlQuery()"),
-           Pros = c("1. Built in<br>2. Can be helpful if field names are non-standard", 
-                    "1. Extremely fast<br> 2. Shows progress bar<br>3. Automatically creates tbl_df() object", 
-                    "1. Easy to access databases with ODBC/JDBC Drivers"),
-           Cons = c("1. StringsAsFactors = True<br>2. Slow on large data", 
-                    "1. Doesn't handle non-standard field names well<br>2. Data type interpolation not great for non-standard data sets", 
-                    "1. Can be slow depending on network connection")) %>% 
-  datatable(colnames = c("Library", "Example Functions", "Pros", "Cons"), rownames = FALSE, escape = FALSE) #%>% formatStyle(`font-size` = '12px')
-```
-
-<div class="warning">
-  <div class = "red2">**Warning:**</div>Each package has slightly different undesirable "features" so always check your data frame to make sure you're using the best option for your data set!
-<div/>
 
