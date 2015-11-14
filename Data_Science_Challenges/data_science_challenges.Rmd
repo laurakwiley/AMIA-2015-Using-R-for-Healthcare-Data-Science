@@ -1,7 +1,8 @@
 ---
 title: "Data Science Challenges"
+subtitle: "AMIA 2015 - Using R For Healthcare Data Science"
 author: "Laura Wiley"
-date: "October 12, 2015"
+date: "November 14, 2015"
 output:
   ioslides_presentation:
     css: "pure-table.css"
@@ -58,8 +59,47 @@ Adapted from:
 
 <img src="images/datascience_workflow_cropped_badges_new.svg" width="100%" height="100%"/>
 
+## Important Operators <img src="images/highres_magrittr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller}
 
-## Preparation: Getting Data into R <img src="images/highres_readr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="100"/> {.smaller} 
+The magrittr package introduced the concept of a pipe - an operator that takes the data on the left and passes it to the function on the right. 
+
+<div align="center"><strong>Pre-Magrittr:</strong></div>
+
+```{r bunny_foo_foo, eval=FALSE, echo=TRUE}
+foo_foo <- little_bunny()
+
+bop_on(scoop_up(hop_through(foo_foo, forest), field_mouse), head)
+```
+
+<br>
+<div align="center"><strong>Post-Magrittr:</strong></div>
+
+```{r bunny_foo_foo_pipe, eval=FALSE, echo=TRUE}
+foo_foo <- little_bunny()
+
+foo_foo %>% 
+  hop_through(forest) %>% 
+  scoop_up(field_mouse) %>% 
+  bop_on(head)
+```
+
+<div class="citation">
+Hadley Wickham: https://twitter.com/_inundata/status/557980236130689024
+</div>
+
+## Important Operators <img src="images/highres_magrittr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller}
+
+```{r pipes, results='asis',echo=FALSE}
+data.frame(Pipe = c("%>%",
+                    "%<>%",
+                    "%T>%"),
+           Function = c("Pass data from left to function on right and return results of the function, but don't change underlying data.", 
+                        "Pass data from left to function on right, and save results of function to the original data frame.<br><em>Analagous to: dataframe <- dataframe %>% function()</em>", 
+                        "Pass data from left to function on right, but return the original data frame instead of the result of the function")) %>% 
+  datatable(colnames = c("", "Function"), rownames = FALSE, escape = FALSE, options = list(bFilter = FALSE, info = FALSE, paging = FALSE, ordering = FALSE, columnDefs = list(list(className = "dt-center", targets = c(0))))) %>% formatStyle('Pipe', fontWeight = 'bold', `font-size` = '32px', backgroundColor = "Black", color = "White") %>% formatStyle('Function', `font-size` = '20px')
+```
+
+## Preparation: Getting Data into R <img src="images/highres_readr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller} 
 
 ```{r dataio_summary, results='asis',echo=FALSE}
 data.frame(Library = c("Base R", 
@@ -85,8 +125,17 @@ data.frame(Library = c("Base R",
   <div class = "red2">**Warning:**</div>Each package has slightly different undesirable "features" so always check your data frame to make sure you're using the best option for your data set!
 <div/>
 
+## Preparation: Data Manipulation 
 
-## Preparation: Data Manipulation <img src="images/highres_dplyr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="100"/> {.smaller} 
+<div>
+  <img src="images/highres_dplyr.svg" style="float: left; margin: 0px 0px 15px 15px;" height="200"/> 
+  <img src="images/highres_tidyr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="200"/>
+  <p style="margin-left:8em;">Especially with health care data (EHR) or secondary uses of data not collected primarily for future analysis, the vast majority of my time is spent performing data cleaning and data manipulation tasks.</p>
+</div>
+<hr>
+<img src="images/tidy_data.svg" width="75%" height="75%" style="margin:0px auto;display:block"/>
+
+## Preparation: Data Manipulation <img src="images/highres_dplyr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller} 
 
 <div align="center">
   <strong>tbl_df()</strong>
@@ -94,41 +143,170 @@ data.frame(Library = c("Base R",
   <img src="images/tbl_df.png" height="150"/>
 </div>
 
+<br>
+
 <div class="columns-2">
- <strong>filter()</strong> <br>
- <img src="images/filter.svg" height="100"/>
- 
- <strong>select()</strong>
- <br>
- <img src="images/select.svg" height="100"/>
- 
- <strong>summarise()</strong>
- <br>
- <img src="images/select.svg" height="100"/>
- 
-<strong>mutate()</strong>
- <br>
- <img src="images/mutate.svg" height="70"/>
+  <strong>filter()</strong> 
   <br>
- </div>
+  <img src="images/filter.svg" height="100"/>
+ 
+  <strong>select()</strong>
+  <br>
+  <img src="images/select.svg" height="100"/>
+ 
+  <strong>summarise()</strong>
+  <br>
+  <img src="images/select.svg" height="100"/>
+ 
+  <strong>mutate()</strong>
+  <br>
+  <img src="images/mutate.svg" height="70"/>
+  <br>
+</div>
+
+## Preparation: Data Manipulation <img src="images/highres_dplyr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller} 
+
+dplyr also has support for grouping functions that alter the behavior of the previous verbs.  To group a variabll simply add group_by() argument.
+
+```{r group_by_exmple, eval=FALSE}
+my_tbl_df %>% 
+  group_by(mygrouping_column)
+```
+
+<div align="center"><strong>group_by() %>% summarise()</strong></div>
+<br>
+<img src="images/group_summarise.svg" height="150"/>
+  
+<div align="center"><strong>group_by() %>% mutate()</strong></div>
+<br>
+<img src="images/group_mutate.svg" height="150"/>
+
+## Preparation: Data Manipulation <img src="images/highres_tidyr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/>  
+
+<strong>Primary Functions:</strong>
+
+<div class="columns-2">
+  <div align="center"><strong>gather()</strong></div>
+  <br>
+  <img src="images/gather.svg" height="150"/>
+ 
+  <div align="center"><strong>spread()</strong></div>
+  <br>
+  <img src="images/spread.svg" height="150"/>
+ 
+  <div align="center"><strong>separate()</strong></div>
+  <br>
+  <img src="images/separate.svg" height="80"/>
+ 
+  <br><br>
+  <div align="center"><strong>unite()</strong></div>
+  <br>
+  <img src="images/unite.svg" height="70"/>
+  <br>
+</div>
+
+## Preparation: Data Manipulation 
+
+<div>
+  <img src="images/highres_stringr.svg" style="float: left; margin: 0px 0px 15px 15px;" height="175"/> 
+  <img src="images/highres_lubridate.svg" style="float: right; margin: 0px 0px 15px 15px;" height="175"/>
+  <p style="margin-left:8em;"><br>Both stringr and lubridate help ease string and date functions respectively. </p>
+</div>
+
+<br><br>
+
+<div class="columns-2">
+Although the string functions in R are actually not bad, some of them behave in unexpected ways. Stringr tries to fix these to make it easier and intuitive.
+<br>
+<div align="right">Dates in R can be a mess, lubridate makes it easy to manipulate dates and do hard thing things like date ranges and comparing dates.</div>
+</div>
+<br>
+<div class="warning">Please note that stringr uses ICU Regular expressions  which means the can behave differently than expected based on R documentation. However you can simply use the regex() function to change back to perl regular expressions.</div>
+
+## R Solutions <img src="images/rstudio-inc.png" style="float: right; margin: 0px 0px 15px 15px;" width="250"/>
+
+<img src="images/datascience_workflow_cropped_badges_new.svg" width="100%" height="100%"/>
+
+## Analysis: Model Tidying {.smaller}
+
+```{r regression_example, echo = TRUE}
+mtcars %>% 
+  lm(formula = mpg ~ cyl + disp) %>% 
+  summary()
+```
+
+## Analysis: Model Tidying <img src="images/broom.png" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller}
+
+<br><br>
+
+```{r broom_example1a, echo = TRUE, eval = FALSE, out.width='450px'}
+mtcars %>% 
+  lm(formula = mpg ~ cyl + disp) %>% 
+  tidy()
+```
+
+```{r broom_example1b}
+mtcars %>% 
+  lm(formula = mpg ~ cyl) %>% 
+  tidy() %>% 
+  datatable(rownames = FALSE, escape = FALSE, options = list(pageLength = 12, bFilter = FALSE, info = FALSE, paging = FALSE, ordering = FALSE, columnDefs = list(list(className = "dt-center", targets = c(0:4)))))
+```
+
+```{r broom_example2a, echo = TRUE, eval = FALSE, out.width='450px'}
+mtcars %>% 
+  lm(formula = mpg ~ cyl + disp) %>% 
+  glance()
+```
+
+```{r broom_example2b}
+mtcars %>% 
+  lm(formula = mpg ~ cyl) %>% 
+  glance() %>% 
+  datatable(rownames = FALSE, escape = FALSE, options = list(scrollX = TRUE, bFilter = FALSE, info = FALSE, paging = FALSE, ordering = FALSE, columnDefs = list(list(className = "dt-center", targets = c(0:4))))) %>% formatRound(columns = c(1:5,7:10), 3) 
+```
+
+## Analysis: Graphs <img src="images/highres_ggplot2.svg" style="float: right; margin: 0px 0px 15px 15px;" width="150"/>
+
+<br><br>
+
+```{r ggplot, eval = FALSE, echo = TRUE, out.width='350px'}
+ggplot(data, aes(x = F, y = a)) + geom_point()
+```
+
+<img src="images/ggplot2.svg" width="100%" height="100%"/>
+
+## Analysis: Graphs <img src="images/highres_ggplot2.svg" style="float: right; margin: 0px 0px 15px 15px;" width="150"/>
+
+<br><br>
+
+```{r ggplot2, eval = FALSE, echo = TRUE}
+ggplot(data, aes(x = F, y = a, color = F, size = A)) + geom_point()
+```
 
 
-## Using R for Reporting <img src="images/r-markdown-hexbin.png" style="float: right; margin: 0px 0px 15px 15px;" height="200"/>
+<img src="images/ggplot2_aes.svg" width="100%" height="100%"/>
 
-**Motivation** 
+## R Solutions <img src="images/rstudio-inc.png" style="float: right; margin: 0px 0px 15px 15px;" width="250"/>
 
-1. Easy mechanism for literate programming
-2. Sharing and updating analyses trivial
-    - With programmers/analysts/your future self
-    - With information consumers (e.g., your boss)
+<img src="images/datascience_workflow_cropped_badges_new.svg" width="100%" height="100%"/>
 
+## Dissemination: Reports <img src="images/highres_knitr.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller}
+
+Knitr takes an RMarkdown document - markdown formatted text with intersperced R code - and turns them into documents. 
+
+<img src="images/markdown_workflow.svg" width="50%" height="50%" style="margin:0px auto;display:block"/>
+<hr>
 <div class="columns-2">
   <img src="images/markdown_withcode.png" alt="Drawing" style="width: 375px;"/>
   <img src="images/markdown_nocode.png" alt="Drawing" style="width: 350px;"/>
 </div>
 
-## RMarkdown <img src="images/r-markdown-hexbin.png" style="float: right; margin: 0px 0px 15px 15px;" height="100"/>
+## Dissemination: Reports <img src="images/highres_rmarkdown.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller}
 
+<img src="images/rmarkdown_basics.png" width="100%" height="100%" style="margin:0px auto;display:block"/>
 
+## Dissemination: Web Apps <img src="images/highres_shiny.svg" style="float: right; margin: 0px 0px 15px 15px;" height="150"/> {.smaller}
+
+<iframe src="http://159.203.246.118/shiny/mtcars_App/" style="border: none; width: 800px; height: 600px"></iframe>
 
 
