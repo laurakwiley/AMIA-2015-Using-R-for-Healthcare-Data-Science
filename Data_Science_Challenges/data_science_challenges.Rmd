@@ -53,8 +53,6 @@ Adapted from:
  - Philip Guo (http://cacm.acm.org/blogs/blog-cacm/169199-data-science-workflow-overview-and-challenges/fulltext)
 </div>
 
-
-
 ## R Solutions <img src="images/rstudio-inc.png" style="float: right; margin: 0px 0px 15px 15px;" width="250"/>
 
 <img src="images/datascience_workflow_cropped_badges_new.svg" width="100%" height="100%"/>
