@@ -1,6 +1,8 @@
 ---
 title: 'Case Study 1: A Data Scientist''s Workflow in R'
+subtitle: "AMIA 2015 - Using R For Healthcare Data Science"
 author: "Laura Wiley"
+date: "November 14, 2015"
 output:
   html_document:
     css: pure-table.css
