@@ -47,6 +47,20 @@ This report will walk you through the data scientist's workflow and how recent R
 
 To illustrate how packages released over the past few years have made these tasks easier we will walk through an entire analysis plan using data published by the International Warfarin Pharmacogenomics Consortium available on the [PharmGKB website](https://www.pharmgkb.org/downloads/). 
 
+## Motivation
+
+Starting a new patient on warfarin can be a complicated process as many providers select a starting warfarin dose based on complex clinical algorithms. We know that genetics play a role in final warfarin dose and many groups have started to include genomic markers in their algorithms used to advise starting warfarin dose. 
+
+Our goal is to ultimately create a web app that a provider could use to input clinical and genetic data about a patient and get back a recommended starting dose of warfarin. One group that has already completed this task is the IWPC (International Warfarin Pharmacogenomics Consortium).
+
+<img src="images/iwpc_title.png" width="50%" height="50%" style="margin:0px auto;display:block"/>
+
+The [main data set](https://www.pharmgkb.org/download.do?objId=553247439&objCls=SubmissionEvent&ext=.xls) for the IWPC study is available on [PharmGKB](https://www.pharmgkb.org/downloads/). 
+
+We will download the data from the original paper, and take it through the steps of the data scientist's workflow -  preparing, analyzing, and reporting. Ultimately we will create an interactive web app for our model much like the one produced by the IWPC.
+
+<img src="images/iwpc_warfarin_dose_calculator.png" width="75%" height="75%" style="margin:0px auto;display:block"/>
+
 # The Data Scientist's Workflow
 
 Taking a cue from David Rob^[http://varianceexplained.org/r/broom-slides/], Data Scientist at Stack Overflow, and Philip Guo^[http://cacm.acm.org/blogs/blog-cacm/169199-data-science-workflow-overview-and-challenges/fulltext], Assistant Professor of Computer Science at University of Rochester, here is my view of the primary computational data science workflow:
@@ -83,6 +97,8 @@ Finally, the **dissemination phase** to share the results of their work:
 Over the past few years the growth in tools aiding these steps has been phenomenal. We will cover each of these as we move through the workflow steps, but here is a summary of the different packages I've found useful for these steps:
 
 ![](images/datascience_workflow_cropped_badges2.svg) 
+
+
 
 
 ## Preparation Phase
